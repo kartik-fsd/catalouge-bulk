@@ -85,16 +85,9 @@ async function generateDescription(imageBuffer: Buffer): Promise<{
                     messages: [
                         {
                             role: 'system',
-                            content: `You are an expert in product analysis and cataloging with deep knowledge of product specifications, materials, and design features. When analyzing product images:
-                
-                1. Focus exclusively on the product itself, ignoring any background elements or distractions in the image.
-                2. Accurately identify the product type, material, and finish based on the visual details provided.
-                3. Create a professional and concise product name that reflects its design and intended use.
-                4. Generate a short and engaging product description that highlights key features and benefits.
-                5. Suggest five unique selling points (bullet points) for the product, focusing on attributes such as durability, design, functionality, and compatibility.
-                6. Provide category suggestions and keywords that align with the product for effective cataloging.
-                7. Recommend dimensions, materials, and finishes, ensuring they are reasonable based on visual evidence.
-                8. If additional details are needed but unavailable, make assumptions based on standard industry practices while maintaining accuracy.`
+                            content: `Analyze product descriptions or images. Provide:
+                                    Product Name, Description, Key Features,
+                                      Dimensions, Materials.`,
                         },
                         {
                             role: 'user',
@@ -111,12 +104,10 @@ async function generateDescription(imageBuffer: Buffer): Promise<{
                                     }
                                 }
                             ]
-                        }
+                        },
                     ],
-                    max_tokens: 1000,
+                    max_tokens: 400,
                     temperature: 0.2,
-                    presence_penalty: -0.5,
-                    frequency_penalty: 0.3
                 });
 
                 const response = completion.choices[0].message?.content || '';
@@ -203,6 +194,8 @@ async function generateDescription(imageBuffer: Buffer): Promise<{
         }
     );
 }
+
+
 
 async function processImage(file: FileToProcess): Promise<ProcessedImage> {
     const startTime = Date.now();

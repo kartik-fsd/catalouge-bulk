@@ -28,8 +28,8 @@ export const UI_MESSAGES = {
 
 export const UPLOAD_CONFIG = {
     MAX_FILES: 500,
-    MAX_FILE_SIZE: 2 * 1024 * 1024, // 2MB
-    MAX_TOTAL_SIZE: 100 * 1024 * 1024, // 100MB
+    MAX_FILE_SIZE: 4 * 1024 * 1024, // 4MB
+    MAX_TOTAL_SIZE: 400 * 1024 * 1024, // 400MB
     ACCEPTED_TYPES: {
         'image/*': ['.jpg', '.jpeg', '.png'],
         'application/zip': ['.zip']
