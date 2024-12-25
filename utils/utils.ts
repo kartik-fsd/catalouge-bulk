@@ -186,6 +186,8 @@
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { ProcessedImage } from '@/types/types';
+import { UPLOAD_CONFIG } from './config';
+import JSZip from 'jszip';
 
 export const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -272,61 +274,81 @@ export const downloadExcel = (results: ProcessedImage[], filename = 'product-cat
 };
 
 export const processZipFile = async (
-    file: File,
-    validator: (files: File[]) => boolean
+    zipFile: File,
+    validateFn: (files: File[]) => boolean
 ): Promise<File[]> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const result = e.target?.result;
-                if (!result || typeof result !== 'string') {
-                    throw new Error('Failed to read ZIP file');
-                }
+    const zip = new JSZip();
 
-                // Convert base64 to Uint8Array
-                const binaryString = atob(result.split(',')[1]);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
+    try {
+        // Read the zip file
+        const zipContent = await zip.loadAsync(zipFile);
+        const extractedFiles: File[] = [];
 
-                const JSZip = (await import('jszip')).default;
-                const zip = await JSZip.loadAsync(bytes);
-
-                const extractedFiles: File[] = [];
-                const promises: Promise<void>[] = [];
-
-                zip.forEach((relativePath, zipEntry) => {
-                    if (!zipEntry.dir && /\.(jpg|jpeg|png)$/i.test(relativePath)) {
-                        const promise = zipEntry.async('blob').then(blob => {
-                            const extractedFile = new File([blob], relativePath, {
-                                type: 'image/jpeg'
-                            });
-                            if (validateFiles.size(extractedFile, 2 * 1024 * 1024)) {
-                                extractedFiles.push(extractedFile);
-                            }
-                        });
-                        promises.push(promise);
-                    }
-                });
-
-                await Promise.all(promises);
-
-                if (validator(extractedFiles)) {
-                    resolve(extractedFiles);
-                } else {
-                    reject(new Error('Extracted files validation failed'));
-                }
-            } catch (error) {
-                reject(error);
+        // Process each file in the zip
+        for (const [filename, file] of Object.entries(zipContent.files)) {
+            // Skip directories and hidden files
+            if (file.dir || filename.startsWith('__MACOSX/') || filename.startsWith('.')) {
+                continue;
             }
-        };
-        reader.onerror = () => reject(new Error('Failed to read ZIP file'));
-        reader.readAsDataURL(file);
-    });
+
+            // Check if the file has an accepted image extension
+            const isAcceptedType = UPLOAD_CONFIG.ACCEPTED_TYPES['image/*']
+                .some(ext => filename.toLowerCase().endsWith(ext.substring(1)));
+
+            if (!isAcceptedType) {
+                continue;
+            }
+
+            // Get the file content as blob
+            const blob = await file.async('blob');
+
+            // Create a new File object with the correct type
+            const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
+            const mimeType = getMimeType(fileExtension);
+
+            if (mimeType) {
+                const extractedFile = new File(
+                    [blob],
+                    filename.split('/').pop() || filename,
+                    { type: mimeType }
+                );
+
+                // Validate file size
+                if (extractedFile.size <= UPLOAD_CONFIG.MAX_FILE_SIZE) {
+                    extractedFiles.push(extractedFile);
+                }
+            }
+        }
+
+        // Validate the total number of files
+        if (extractedFiles.length > UPLOAD_CONFIG.MAX_FILES) {
+            throw new Error(`ZIP contains more than ${UPLOAD_CONFIG.MAX_FILES} files`);
+        }
+
+        // Run custom validation if provided
+        if (validateFn && !validateFn(extractedFiles)) {
+            throw new Error('Extracted files failed validation');
+        }
+
+        return extractedFiles;
+
+    } catch (error) {
+        console.error('Error processing ZIP file:', error);
+        throw error;
+    }
 };
 
+const getMimeType = (extension: string): string | null => {
+    const mimeTypes: { [key: string]: string } = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp'
+    };
+
+    return mimeTypes[extension] || null;
+};
 export const createProgressTracker = (
     onProgress: (progress: number) => void,
     total: number
