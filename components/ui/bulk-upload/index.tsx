@@ -290,7 +290,6 @@ export const UploadButton: React.FC<UploadButtonProps> = React.memo(
       }
     };
 
-    // Button should be enabled when completed (for download)
     const isButtonDisabled =
       stage === PROCESSING_STAGES.COMPLETED ? false : disabled || isProcessing;
 

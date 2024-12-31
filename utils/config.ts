@@ -1,4 +1,3 @@
-// config.ts
 export const PROCESSING_STAGES = {
     IDLE: 'idle',
     UPLOADING: 'uploading',

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
@@ -27,7 +28,7 @@ import {
   UPLOAD_CONFIG,
 } from "@/utils/config";
 
-export default function Home() {
+export default function CatalogGenrator() {
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -109,7 +110,6 @@ export default function Home() {
             return validateFiles.all(files, files).valid;
           });
           processedFiles.push(...extractedFiles);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           setError("Failed to process ZIP file");
           updateProcessingStage("idle");
@@ -146,17 +146,14 @@ export default function Home() {
       return;
     }
 
-    // If in completed state, handle download
     if (stage === PROCESSING_STAGES.COMPLETED) {
       try {
         generateExcel(results);
-        // Optionally reset the state after successful download
         setTimeout(() => {
           updateProcessingStage(PROCESSING_STAGES.IDLE, 0);
           setFiles([]);
         }, 1000);
         return;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         setError("Failed to download catalog");
         return;
@@ -172,7 +169,6 @@ export default function Home() {
     try {
       abortControllerRef.current = new AbortController();
 
-      // Upload stage
       updateProcessingStage(PROCESSING_STAGES.UPLOADING, 25);
       const response = await fetch(API_CONFIG.ENDPOINTS.PROCESS, {
         method: "POST",
@@ -184,17 +180,13 @@ export default function Home() {
         throw new Error(ERROR_MESSAGES.UPLOAD_FAILED);
       }
 
-      // Processing stage
       updateProcessingStage(PROCESSING_STAGES.PROCESSING, 50);
       const data = await response.json();
 
-      // Store results for later download
       setResults(data);
 
-      // Analyzing stage
       updateProcessingStage(PROCESSING_STAGES.ANALYZING, 75);
 
-      // Completed stage
       updateProcessingStage(PROCESSING_STAGES.COMPLETED, 100);
     } catch (err) {
       if (err instanceof Error) {
